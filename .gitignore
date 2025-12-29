@@ -4,3 +4,7 @@
 /downloads
 .env
 *.session
+.idea
+.vscode
+.DS_Store
+__pycache__

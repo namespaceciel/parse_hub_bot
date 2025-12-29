@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "parsehub",
     "aiocache>=0.12.3",
     "apscheduler==3.10.4",
     "dynrender-skia>=0.2.5",
@@ -13,7 +14,6 @@ dependencies = [
     "loguru>=0.6.0,<0.7.0",
     "lxml-html-clean>=0.4.1",
     "markdown>=3.7",
-    "parsehub>=1.2.37",
     "pillow>=11.3.0",
     "pillow-heif>=1.1.1",
     "pydantic-settings>=2.11.0",
@@ -22,7 +22,11 @@ dependencies = [
     "tgcrypto>=1.2.5",
     "uvloop>=0.22.1 ; sys_platform != 'win32'",
     "winloop>=0.3.1 ; sys_platform == 'win32'",
+    "fastmcp>=2.14.1",
 ]
+
+[tool.uv.sources]
+parsehub = { git = "https://github.com/namespaceciel/ParseHub.git", branch = "master" }
 
 [tool.ruff]
 line-length = 120
@@ -41,4 +45,3 @@ ignore = [
     "B008", # 不在参数默认值中执行函数调用
     "C901", # 函数复杂度过高
 ]
-

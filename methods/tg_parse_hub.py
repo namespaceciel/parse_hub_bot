@@ -40,6 +40,7 @@ from pyrogram.types import (
     InlineQueryResultVideo,
     InputMediaPhoto,
     InputMediaVideo,
+    InputMediaDocument,
     InputTextMessageContent,
     LinkPreviewOptions,
     Message,
@@ -176,7 +177,7 @@ class TgParseHub(ParseHub):
         # 检查缓存
         if cached_info := await self._get_msg_cache():
             if reconstructed := await self._reconstruct_messages(
-                cli, cached_info, msg.chat.id, msg.id, msg.message_thread_id
+                    cli, cached_info, msg.chat.id, msg.id, msg.message_thread_id
             ):
                 return reconstructed
 
@@ -277,7 +278,7 @@ class TgParseHub(ParseHub):
 
     @staticmethod
     def _extract_msg_ids(
-        msg: Message | list[Message] | list[list[Message]],
+            msg: Message | list[Message] | list[list[Message]],
     ) -> CachedMessageInfo | list[CachedMessageInfo] | None:
         """从消息中提取 chat_id 和 message_id 信息"""
         if isinstance(msg, Message):
@@ -303,12 +304,12 @@ class TgParseHub(ParseHub):
         return None
 
     async def _reconstruct_messages(
-        self,
-        cli: Client,
-        cached_info: CachedMessageInfo | list[CachedMessageInfo],
-        target_chat_id: int,
-        target_message_id: int,
-        message_thread_id: int | None = None,
+            self,
+            cli: Client,
+            cached_info: CachedMessageInfo | list[CachedMessageInfo],
+            target_chat_id: int,
+            target_message_id: int,
+            message_thread_id: int | None = None,
     ) -> Message | list[Message] | list[list[Message]] | None:
         """根据缓存的消息ID信息重建消息并复制到目标聊天"""
         try:
@@ -357,7 +358,7 @@ class TgParseHub(ParseHub):
                         self.operate.content_and_url,
                         link_preview_options=LinkPreviewOptions(is_disabled=True),
                         reply_markup=self.operate.button(),
-                        quote=True,
+                        quote=False,
                     )
                 return results
         except Exception as e:
@@ -476,10 +477,10 @@ class ParseResultOperate(ABC):
         self.download_result.delete()
 
     def button(
-        self,
-        hide_summary: bool = False,
-        show_summary_result: bool = False,
-        summarizing: bool = False,
+            self,
+            hide_summary: bool = False,
+            show_summary_result: bool = False,
+            summarizing: bool = False,
     ) -> Ikm | None:
         """
         按钮
@@ -577,20 +578,6 @@ class ParseResultOperate(ABC):
         else:
             return text
 
-    @staticmethod
-    async def tg_compatible(img: str | Path) -> BinaryIO | str:
-        """将图片转换为Tg兼容的格式"""
-
-        ext = Path(img).suffix.lower()
-        if ext not in [".heif", ".heic"]:
-            return str(img)
-
-        try:
-            return await asyncio.to_thread(img2webp, img)
-        except Exception as e:
-            logger.exception(e)
-            return str(img)
-
 
 class VideoParseResultOperate(ParseResultOperate):
     """视频解析结果操作"""
@@ -607,7 +594,7 @@ class VideoParseResultOperate(ParseResultOperate):
                     str(handle_video[0]),
                     caption=self.content_and_url,
                     video_cover=drm.thumb_url,
-                    quote=True,
+                    quote=False,
                     reply_markup=self.button(),
                     width=drm.width or 0,
                     height=drm.height or 0,
@@ -627,14 +614,14 @@ class VideoParseResultOperate(ParseResultOperate):
                         )
                     )
                 m = [
-                    await msg.reply_media_group(media[i : i + 10], quote=True) for i in range(0, len(handle_video), 10)
+                    await msg.reply_media_group(media[i: i + 10], quote=False) for i in range(0, len(handle_video), 10)
                 ]
                 mm = m[0][0] if isinstance(m[0], list) else m[0]
                 await mm.reply_text(
                     self.content_and_url,
                     link_preview_options=LinkPreviewOptions(is_disabled=True),
                     reply_markup=self.button(),
-                    quote=True,
+                    quote=False,
                 )
                 shutil.rmtree(str(op), ignore_errors=True)
                 return m
@@ -644,16 +631,15 @@ class VideoParseResultOperate(ParseResultOperate):
             logger.error("上传视频失败, 以上为错误信息")
             shutil.rmtree(str(op), ignore_errors=True)
             if drm.thumb_url:
-                return await msg.reply_photo(
-                    photo=drm.thumb_url,
+                return await msg.reply_document(
                     caption=self.content_and_url,
                     reply_markup=self.button(),
-                    quote=True,
+                    quote=False,
                 )
             else:
                 return await msg.reply_text(
                     self.content_and_url,
-                    quote=True,
+                    quote=False,
                     link_preview_options=LinkPreviewOptions(is_disabled=True),
                     reply_markup=self.button(),
                 )
@@ -675,7 +661,7 @@ class ImageParseResultOperate(ParseResultOperate):
         self.telegraph_url = page.url
         return await msg.reply_text(
             self.content_and_url,
-            quote=True,
+            quote=False,
             reply_markup=self.button(),
         )
 
@@ -690,7 +676,7 @@ class ImageParseResultOperate(ParseResultOperate):
                 msg,
             )
         elif isinstance(self.result, CoolapkImageParseResult) and (
-            markdown_content := self.result.coolapk.markdown_content
+                markdown_content := self.result.coolapk.markdown_content
         ):
             return await self._send_ph(
                 clean_article_html(
@@ -704,44 +690,25 @@ class ImageParseResultOperate(ParseResultOperate):
         if count == 0:
             return await msg.reply_text(
                 text,
-                quote=True,
+                quote=False,
                 link_preview_options=LinkPreviewOptions(is_disabled=True),
                 reply_markup=self.button(),
             )
         elif count == 1:
-            return await msg.reply_photo(
-                await self.tg_compatible(self.download_result.media[0].path),
-                quote=True,
+            return await msg.reply_document(
+                self.download_result.media[0].path,
+                quote=False,
                 caption=text,
                 reply_markup=self.button(),
             )
-        elif count <= 9:
-            text = self.content_and_url
-            m = await msg.reply_media_group(
-                [InputMediaPhoto(await self.tg_compatible(v.path)) for v in self.download_result.media]
-            )
-            await m[0].reply_text(
-                text,
-                link_preview_options=LinkPreviewOptions(is_disabled=True),
-                reply_markup=self.button(),
-                quote=True,
-            )
-            return [m]
         else:
-            sem = asyncio.Semaphore(5)
-            async with ImgHost() as ih:
-
-                @logger.catch()
-                async def limited_ih(path: str):
-                    async with sem:
-                        return await ih.zioooo(path)
-
-                tasks = [limited_ih(i.path) for i in self.download_result.media]
-                results = await asyncio.gather(*tasks, return_exceptions=True)
-            results = [f'<img src="{i}">' for i in results if not isinstance(i, Exception)]
-            if not results:
-                return await msg.reply_text("图片上传图床失败")
-            return await self._send_ph(f"{self.result.desc}<br><br>" + "".join(results), msg)
+            text = self.content_and_url
+            docs = [InputMediaDocument(v.path) for v in self.download_result.media]
+            m = [await msg.reply_media_group(docs[i:i + 10], quote=False) for i in range(0, len(docs), 10)]
+            await m[0][0].reply_text(text, link_preview_options=LinkPreviewOptions(is_disabled=True),
+                                     reply_markup=
+                                     self.button(), quote=False)
+            return m
 
 
 class MultimediaParseResultOperate(ParseResultOperate):
@@ -755,19 +722,19 @@ class MultimediaParseResultOperate(ParseResultOperate):
         if count == 0:
             return await msg.reply_text(
                 text,
-                quote=True,
+                quote=False,
                 link_preview_options=LinkPreviewOptions(is_disabled=True),
                 reply_markup=self.button(),
             )
         elif count == 1:
             m = self.download_result.media[0]
             k = {
-                "quote": True,
+                "quote": False,
                 "caption": text,
                 "reply_markup": self.button(),
             }
             if isinstance(m, Image):
-                return await msg.reply_photo(await self.tg_compatible(m.path), **k)
+                return await msg.reply_document(m.path, **k)
             elif isinstance(m, Video):
                 return await msg.reply_video(
                     m.path,
@@ -788,7 +755,7 @@ class MultimediaParseResultOperate(ParseResultOperate):
             ani_msg = []
             for i, v in enumerate(self.download_result.media):
                 if isinstance(v, Image):
-                    media.append(InputMediaPhoto(await self.tg_compatible(v.path)))
+                    media.append(InputMediaDocument(v.path))
                 elif isinstance(v, Video):
                     media.append(
                         InputMediaVideo(
@@ -802,16 +769,16 @@ class MultimediaParseResultOperate(ParseResultOperate):
                 elif isinstance(v, Ani):
                     ani = await msg.reply_animation(
                         v.path,
-                        quote=True,
+                        quote=False,
                         caption=f"**{i + 1}/{count}**",
                     )
                     ani_msg.append(ani)
-            m = ani_msg + [await msg.reply_media_group(media[i : i + 10], quote=True) for i in range(0, count, 10)]
+            m = ani_msg + [await msg.reply_media_group(media[i: i + 10], quote=False) for i in range(0, count, 10)]
             mm = m[0][0] if isinstance(m[0], list) else m[0]
             await mm.reply_text(
                 text,
                 link_preview_options=LinkPreviewOptions(is_disabled=True),
                 reply_markup=self.button(),
-                quote=True,
+                quote=False,
             )
             return m
