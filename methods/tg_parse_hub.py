@@ -757,15 +757,7 @@ class MultimediaParseResultOperate(ParseResultOperate):
                 if isinstance(v, Image):
                     media.append(InputMediaDocument(v.path))
                 elif isinstance(v, Video):
-                    media.append(
-                        InputMediaVideo(
-                            v.path,
-                            video_cover=v.thumb_url,
-                            duration=v.duration or 0,
-                            width=v.width or 0,
-                            height=v.height or 0,
-                        )
-                    )
+                    media.append(InputMediaDocument(v.path))
                 elif isinstance(v, Ani):
                     ani = await msg.reply_animation(
                         v.path,
