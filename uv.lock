@@ -1494,7 +1494,7 @@ wheels = [
 [[package]]
 name = "parsehub"
 version = "1.6.0"
-source = { git = "https://github.com/namespaceciel/ParseHub.git?branch=master#2bef0ad9aefc7283fdfa587734c43907c84d8edf" }
+source = { git = "https://github.com/namespaceciel/ParseHub.git?branch=master#7adb23158df477f16ee49f3bc0ace99385f27885" }
 dependencies = [
     { name = "aiocache" },
     { name = "aiofiles" },

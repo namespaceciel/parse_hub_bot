@@ -50,26 +50,8 @@ async def on_disconnect(cli: Client, __) -> None:
     if ws.restart_count >= ws.max_restart_count:
         exit(f"重启次数已达上限 ({ws.max_restart_count} 次), 结束进程")
 
-    if ws.disconnect_count < ws.max_disconnect_count:
-        ws.update_bot_disconnect_count()
-        logger.warning(f"Bot 已断开连接... | {ws.disconnect_count}/{ws.max_disconnect_count}")
-        return
-
-    if bot_cfg.debug:
-        exit("Bot 已断开连接, 目前处于调试模式, 已跳过重启")
-
-    try:
-        ws.update_bot_restart_count()
-        logger.warning(f"Bot 已断开连接, 尝试重启... | {ws.restart_count}/{ws.max_restart_count}")
-
-        if ws.restart_count == ws.remove_session_after_restart and not cli.in_memory:
-            await remove_session_file(cli)
-
-        python = sys.executable
-        os.execv(python, [python] + sys.argv)
-    except Exception as e:
-        logger.exception(e)
-        exit("重启失败, 结束进程, 以上为错误信息")
+    ws.update_bot_disconnect_count()
+    logger.warning(f"Bot 已断开连接... | {ws.disconnect_count} 次")
 
 
 async def remove_session_file(cli: Client) -> None:
